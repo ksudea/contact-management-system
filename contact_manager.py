@@ -7,22 +7,29 @@ import re
 
 def add_contact(name, email, phone, misc):
   if email == "":
-    unique_id = phone[:6]
+    unique_id = phone
   else: 
-    unique_id = email[:6]
+    unique_id = email
   print(f"Your contact identifier is {unique_id}. This cannot be edited.")
   contact_info = {"name": name, "email": email, "phone": phone, "misc": misc}  
   contact_storage.update({unique_id: contact_info})
   print("Added new contact!")
 
-#add conditionals for email or phone deleting
 def edit_contact(id, choice, new_info):
   if choice == 1:
     contact_storage[id]["name"] = new_info
   elif choice == 2:
-    contact_storage[id]["email"] = new_info
+    if new_info == "" and contact_storage[id]["phone"] == "":
+       print("Error: both e-mail and phone number cannot be empty.")
+       return
+    else:
+       contact_storage[id]["email"] = new_info
   elif choice == 3:
-    contact_storage[id]["phone"] = new_info
+    if new_info == "" and contact_storage[id]["email"] == "":
+       print("Error: both e-mail and phone number cannot be empty.")
+       return
+    else:
+       contact_storage[id]["phone"] = new_info
   elif choice == 4:
     contact_storage[id]["misc"] = new_info
   else:
@@ -34,7 +41,7 @@ def delete_contact(id):
   try:
     contact_storage.pop(id)
   except KeyError:
-    print("Cannot delete because this contact is not in your directory \n OR the unique ID you entered is incorrect.")
+    print("Cannot delete: No contact with this ID in the directory.")
   except Exception as e:
     print(f"Unexpected error: {e}")
   else: 
@@ -79,7 +86,7 @@ def get_valid_name():
     if match != None:
           name_collected = True
     else:
-       print("Wrong formatting! Make sure the name is more than 2 chars.")
+       print("Wrong formatting! Make sure the name is more than 2 chars and \n the characters are valid.")
   return name
 
 def get_valid_email():
@@ -92,7 +99,7 @@ def get_valid_email():
     if match != None:
         email_collected = True
     else:
-        print("Wrong formatting! Make sure this is a valid e-mail address")
+        print("Wrong formatting! Make sure this is a valid e-mail address.")
   return contact_email
 
 def get_valid_phone():
