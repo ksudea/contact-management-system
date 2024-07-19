@@ -2,7 +2,7 @@
 contact_storage = {}
 
 # FUnctions 
-import random
+import os
 import re
 
 def add_contact(name, email, phone, misc):
@@ -66,16 +66,88 @@ def display_all():
     search(key)
 
 def export_contacts():
-  pass
+  filename = "contact_directory.txt"
+  with open(filename, "w") as file:
+    for key in contact_storage.keys():
+        contact_info = contact_storage.get(key)
+        name, email, phone, misc = contact_info.get("name"), contact_info.get("email"), contact_info.get("phone"), contact_info.get("misc")
+        file.write(f"Contact ID: {key} \n")
+        file.write(f"   Name: {name} \n")
+        file.write(f"   E-mail: {email} \n")
+        file.write(f"   Other: {misc} \n")
+  print(f"Exported contacts to file {filename}.")
 
-def import_contacts():
-  pass
+# Assumes each line contains 1 new contact and is formatted as follows:
+# name email phone misc
+# Allows for lines with less than 4 elements, such as
+# name email
+# name phone
+# name email misc
+# name phone misc
+# raises exception when encountering lines that do not adhere to this
+def import_contacts(filename):
+  try:
+    with open(filename, "r") as file:
+        for line in file:
+           elements = line.split(" ")
+           if len(elements) == 2:
+            #have to check if the required elements (name and email or phone) are present - since there are 2, it should be name email or name phone. otherwise, error
+              name = elements[0]
+              match_email = re.search(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,4}$", elements[1])
+              if match_email != None: 
+                 email = elements[1]
+                 add_contact(name, email, "", "")
+                 continue
+              else:
+                 match_phone = re.search(r"^(?=.{10,12}$)\+?\d{1,4}?\(?\d{1,3}?\)?\d{1,4}\d{1,4}\d{1,9}$", elements[1])
+                 if match_phone != None:
+                    phone = elements[1]
+                    add_contact(name, "", phone, "")
+                 else:
+                    raise e
+           elif len(elements) == 3:
+             #have to check if required elements are present again 
+              name = elements[0]
+              match_email_2 = re.search(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,4}$", elements[1])
+              if match_email_2 != None:
+                 email = elements[1]
+                 match_phone_3 = re.search(r"^(?=.{10,12}$)\+?\d{1,4}?\(?\d{1,3}?\)?\d{1,4}\d{1,4}\d{1,9}$", elements[2])
+                 if match_phone_3 != None:
+                    phone = elements[2]
+                    add_contact(name, email, phone, "")
+                 else:
+                    add_contact(name, email, "", elements[2])
+              else:
+                match_phone_2 = re.search(r"^(?=.{10,12}$)\+?\d{1,4}?\(?\d{1,3}?\)?\d{1,4}\d{1,4}\d{1,9}$", elements[1])
+                if match_phone_2 != None:
+                   phone = elements[1]
+                   add_contact(name, "", phone, elements[2])
+                else:
+                   raise e
+           elif len(elements) == 4:
+              #there are 4 elements, but are they valid? otherwise, error!
+              match_name = re.search(r"\b([A-Z-,a-z. ']{2,})+", elements[0])
+              match_email = re.search(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,4}$", elements[1])
+              match_phone = re.search(r"^(?=.{10,12}$)\+?\d{1,4}?\(?\d{1,3}?\)?\d{1,4}\d{1,4}\d{1,9}$", elements[2])
+              if match_name != None and match_email != None and match_phone != None:
+                name, email, phone, misc = elements[0], elements[1], elements[2], elements[3]
+                add_contact(name, email, phone, misc)
+              else: 
+                raise e
+           else:
+              raise e
+  except FileNotFoundError:
+     print("Cannot import; file not found.")
+  except PermissionError:
+     print("Cannot access file! Check permission.")
+  except Exception as e:
+     print(f"""Error! The file content is formatted incompatibly with this contact manager app. \n 
+           Try formatting such that each line corresponds to 1 contact, each attribute is separated by a single whitespace, and \n
+           each line contains at least contact name AND contact email/phone. {e}""")
 
-# Input handling, validation, and passing to functions
-validateName = "\b([A-Z-,a-z. ']{2,})+"
-validatePhoneNumberRegex = "/^\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}$/"
-validateEmailRegex = "^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$"
+# Helper functions for validating name, email, and phone inputs. All 3 use regex.
 
+# Validating name input (note: must be at least 2 chars, valid chars for a name)
 def get_valid_name():
   name_collected = False
   while not name_collected:
@@ -86,22 +158,25 @@ def get_valid_name():
     if match != None:
           name_collected = True
     else:
-       print("Wrong formatting! Make sure the name is more than 2 chars and \n the characters are valid.")
+       print("Wrong formatting! Make sure the name has at least 2 chars and \n the characters are valid.")
   return name
 
+#Validating email input
 def get_valid_email():
   email_collected = False
   while not email_collected:
     contact_email = input("Input valid contact e-mail(format: example@domain.com): ")
     if contact_email == "":
         email_collected = True
-    match = re.search(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,4}$", contact_email)
-    if match != None:
-        email_collected = True
-    else:
-        print("Wrong formatting! Make sure this is a valid e-mail address.")
+    else: 
+       match = re.search(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,4}$", contact_email)
+       if match != None:
+            email_collected = True
+       else:
+            print("Wrong formatting! Make sure this is a valid e-mail address.")
   return contact_email
 
+#Validating phone input
 def get_valid_phone():
   phone_collected = False
   while not phone_collected:
@@ -109,17 +184,19 @@ def get_valid_phone():
     contact_phone = input("Input valid contact phone number: ")
     if contact_phone == "":
        phone_collected = True
-    match = re.search(r"^(?=.{10,12}$)\+?\d{1,4}?\(?\d{1,3}?\)?\d{1,4}\d{1,4}\d{1,9}$", contact_phone)
-    if match != None:
-        phone_collected = True
     else:
-        print("Wrong formatting!")
+        match = re.search(r"^(?=.{10,12}$)\+?\d{1,4}?\(?\d{1,3}?\)?\d{1,4}\d{1,4}\d{1,9}$", contact_phone)
+        if match != None:
+            phone_collected = True
+        else:
+            print("Wrong formatting!")
   return contact_phone
 
+# Helper functions for 1. add and 2. edit; Input handling, Input validation, and logic of passing input to functions
 def handle_add_contact():
-      print("Add a new contact: \n Each contact must have at least a phone number OR e-mail. \n Each contact must have a name.")
-      print("Press ENTER to bypass any inputs.")
-
+    print("Add a new contact: \n Each contact must have at least a phone number OR e-mail. \n Each contact must have a name.")
+    print("Press ENTER to bypass any inputs.")
+    try:
       contact_name = get_valid_name()
       contact_email = get_valid_email()
       contact_phone = get_valid_phone()
@@ -129,6 +206,8 @@ def handle_add_contact():
       else:
         contact_misc = input("Add anything else, like notes or an address: ")
         add_contact(contact_name, contact_email, contact_phone, contact_misc)
+    except Exception as e:
+      print(f"An error occurred: {e}")
 
 def handle_edit_contact():
   print("Enter the unique id of the contact you would like to edit.")
@@ -145,8 +224,6 @@ def handle_edit_contact():
                 3. Phone number
                 4. Misc """)
         choice = int(input("Choose an item to edit (1-4): "))
-        print(choice)
-    #   new_info = ""
         if choice == 1:
             new_info = get_valid_name()
             edit_contact(unique_id, choice, new_info)
@@ -168,24 +245,24 @@ def handle_edit_contact():
   except Exception as e:
       print(f"An error occurred: {e}")
 
-
-if __name__ == '__main__':
- print("""Welcome to Contact Manager, your premier contact management app!
-
-                Menu:
+#Helper to print menu
+def print_menu():
+   print("""    Menu:
                 1. Add a new contact
                 2. Edit an existing contact
                 3. Delete a contact
                 4. Search for a contact
                 5. Display all contacts
                 6. Export contacts to a text file
-                7. Import contacts from a text file *BONUS*
-                8. Quit
-
-            """)
+                7. Import contacts from a text file
+                8. Quit""")
+   
+if __name__ == '__main__':
+ print("""Welcome to Contact Manager, your premier contact management app!""")
  run_program = True
  while run_program:
    try:
+      print_menu()
       action = int(input("Enter your choice (1-8):"))
       if action == 1:
         handle_add_contact()
@@ -200,9 +277,10 @@ if __name__ == '__main__':
       elif action == 5:
         display_all()
       elif action == 6:
-        pass
+        export_contacts()
       elif action == 7:
-        pass
+        filename = input("Enter filename: ")
+        import_contacts(filename)
       elif action == 8:
         run_program = False
       else:

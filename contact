@@ -1,0 +1,1 @@
+python contact_manager.py "$@"
